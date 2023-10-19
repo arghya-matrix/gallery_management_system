@@ -1,0 +1,25 @@
+{
+  "name": "end_user_gallery",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "start": "nodemon app.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "2": "^3.0.0",
+    "bcrypt": "^5.1.1",
+    "dotenv": "^16.3.1",
+    "env": "^0.0.2",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "mysql": "^2.18.1",
+    "mysql2": "^3.6.1",
+    "nodemailer": "^6.9.6",
+    "nodemon": "^3.0.1",
+    "sequelize": "^6.33.0"
+  }
+}
