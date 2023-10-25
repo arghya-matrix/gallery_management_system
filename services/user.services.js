@@ -2,7 +2,7 @@ const db = require("../model/index");
 
 async function findUser({ whereOptions, index, size, attributes }) {
   const user = await db.User.findAndCountAll({
-    attributes : attributes,
+    attributes: attributes,
     where: whereOptions,
     limit: size,
     offset: index,
@@ -12,8 +12,8 @@ async function findUser({ whereOptions, index, size, attributes }) {
 }
 
 async function createUser({ createObject }) {
-  const user = await db.User.create(createObject,{
-    raw: true
+  const user = await db.User.create(createObject, {
+    raw: true,
   });
   return user;
 }
@@ -63,9 +63,20 @@ async function updateUser({ whereOptions, updateOptions }) {
   }
 }
 
+async function findOneUser({ whereOptions }) {
+  const user = await db.User.findAll({
+    attributes : ['id'],
+    where: whereOptions,
+    raw: true,
+  });
+  const idArray = user.map(user => parseInt(user.id));
+  return idArray;
+}
+
 module.exports = {
   findUser,
   createUser,
   deleteUser,
   updateUser,
+  findOneUser,
 };

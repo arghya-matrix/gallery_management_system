@@ -328,7 +328,6 @@ async function changeApproveStatOfUser(req, res) {
   const updateOptions = {};
   const whereOptions = {};
   if (req.userdata.type == "Admin") {
-    console.log("UserData", req.userdata);
     updateOptions.approved_stat = req.query.approved_stat;
     updateOptions.approved_by = req.userdata.user_id;
     whereOptions.id = req.query.id;

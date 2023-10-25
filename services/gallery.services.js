@@ -18,12 +18,12 @@ async function updateGallery({ updateOptions, whereOptions }) {
   return gallery;
 }
 
-async function getGallery({ whereOptions }) {
+async function getGalleryForAdmin({ whereOptions, index, size, orderOptions }) {
   const gallery = await db.Gallery.findAndCountAll({
     include: [
       {
         model: db.AssignedGallery,
-        attributes: [""],
+        attributes: ["id"],
         include: {
           model: db.User,
           attributes: ["Name"],
@@ -31,6 +31,9 @@ async function getGallery({ whereOptions }) {
       },
     ],
     where: whereOptions,
+    order: orderOptions,
+    limit: size,
+    offset: index,
   });
   return gallery;
 }
@@ -41,9 +44,44 @@ async function deleteGallery({ whereOptions }) {
   });
 }
 
+async function getGalleryForUser({ whereOptions, id, size, index, orderOptions }) {
+  const gallery = await db.Gallery.findAndCountAll({
+    include: {
+      model: db.AssignedGallery,
+      attributes:[],
+      where: {
+        user_id: id,
+      },
+    },
+    where: whereOptions,
+    order: orderOptions,
+    limit: size,
+    offset: index,
+  });
+  return gallery;
+}
+
+async function assignGalleryToUser({ createObject }) {
+  const assignedUser = await db.AssignedGallery.bulkCreate(createObject, {
+    raw: true,
+  });
+  return assignedUser;
+}
+
+async function findGallery({ whereOptions }) {
+  const gallery = await db.AssignedGallery.findAndCountAll({
+    where: whereOptions,
+    raw: true,
+  });
+  return gallery;
+}
+
 module.exports = {
   createGallery,
   updateGallery,
-  getGallery,
+  getGalleryForAdmin,
   deleteGallery,
+  getGalleryForUser,
+  assignGalleryToUser,
+  findGallery,
 };
