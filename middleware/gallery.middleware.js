@@ -23,6 +23,7 @@ async function checkUserType(req, res, next) {
 }
 
 async function galleryValidation(req, res, next) {
+  console.log(req.file);
   if (!req.body.image_name) {
     res.status(400).json({
       message: `image name is required to add image`,

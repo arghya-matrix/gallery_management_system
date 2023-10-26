@@ -3,7 +3,6 @@ const galleryServices = require("../services/gallery.services");
 
 async function createGallery(req, res) {
   try {
-    console.log("Inside create gallery controller");
     const createObject = {};
     createObject.image_name = req.body.image_name;
     createObject.image_url = req.url;

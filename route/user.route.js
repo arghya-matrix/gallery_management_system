@@ -28,7 +28,10 @@ router.post(
   userController.signIn
 );
 
+router.post("/sign-out",tokenVerify.userProfile, userController.logOut);
+
 router.put("/update", tokenVerify.userProfile, userController.updateUser);
+
 router.get("/get-user", tokenVerify.userProfile, userController.getUser);
 
 router.post(

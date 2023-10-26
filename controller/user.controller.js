@@ -263,7 +263,7 @@ async function getUser(req, res) {
         whereOptions: whereOptions,
         index: index,
         size: size,
-        attributes: attributes
+        attributes: attributes,
       });
       const currentPage = page ? +page : 1;
       const totalPages = Math.round(users.count / size);
@@ -470,6 +470,34 @@ async function getUsersAssignedToSubAdmin(req, res) {
   }
 }
 
+async function logOut(req, res) {
+  try {
+    const header = req.headers["authorization"];
+    const myarray = header.split(" ");
+    const jwt = myarray[1];
+    const authData = jwtServices.verifyToken(jwt);
+    const sessions_id = authData.sessions_id;
+    const date = new Date();
+    const logOut = await sessionsServices.logoutSession({
+      date: date,
+      sessions_id: sessions_id,
+    });
+    if (logOut.numUpdatedRows > 0) {
+      res.json({
+        message: `${authData.user_name} Logged out`,
+      });
+    } else {
+      res.json({
+        message: `Log in to log out`,
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      message: `Kuch toh gadbad haiiiii !!!!!`,
+      err: error,
+    });
+  }
+}
 module.exports = {
   signUp,
   signIn,
@@ -479,4 +507,5 @@ module.exports = {
   changeApproveStatOfUser,
   assignSubAdmin,
   getUsersAssignedToSubAdmin,
+  logOut,
 };
