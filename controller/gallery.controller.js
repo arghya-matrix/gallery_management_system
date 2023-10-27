@@ -1,12 +1,14 @@
 const { Op } = require("sequelize");
 const galleryServices = require("../services/gallery.services");
+const db = require("../model/index");
+const s3services = require("../services/s3.services");
 
 async function createGallery(req, res) {
   try {
     const createObject = {};
     createObject.image_name = req.body.image_name;
-    createObject.image_url = req.url;
-    createObject.image_type = "image";
+    createObject.image_url = req.file.location;
+    createObject.image_type = req.file.mimetype;
     const gallery = await galleryServices.createGallery({
       createObject: createObject,
     });
@@ -40,8 +42,8 @@ async function updateGallery(req, res) {
         updateOptions.active == false;
       }
     }
-    if (req.url) {
-      updateOptions.image_url = req.url;
+    if (req.file.location) {
+      updateOptions.image_url = req.file.location;
     }
     const gallery = await galleryServices.updateGallery({
       updateOptions: updateOptions,
@@ -120,7 +122,7 @@ async function getGalleryForUser(req, res) {
   if (req.query.type) {
     whereObject.image_type = req.query.type;
   }
-  whereObject.active = true
+  whereObject.active = true;
   const gallery = await galleryServices.getGalleryForUser({
     whereOptions: whereObject,
     index: index,
@@ -141,12 +143,42 @@ async function getGalleryForUser(req, res) {
 async function deleteGallery(req, res) {
   try {
     const whereOptions = {};
-    whereOptions.id = req.query.id;
-    galleryServices.deleteGallery({
-      whereOptions: whereOptions,
+    whereOptions.id = req.query.image_id;
+
+    const galleryData = await db.Gallery.findOne({
+      where: {
+        id: req.query.image_id,
+      },
+      raw: true,
     });
+
+    if (galleryData) {
+      const url = new URL(galleryData.image_url);
+      const pathName = url.pathname;
+      const inputString = pathName;
+      const stringWithoutFirstSlash = inputString.substring(1);
+      console.log(stringWithoutFirstSlash, "Filename");
+      try {
+        const data = await s3services.deleteObject({
+          fileName: stringWithoutFirstSlash,
+        });
+        galleryServices.deleteGallery({
+          whereOptions: whereOptions,
+        });
+      } catch (error) {
+        console.log(error,"error deleting image");
+        res.status(500).json({
+          message: error
+        })
+      }
+    } else {
+      res.status(404).json({
+        message: `No data found`,
+      });
+      return;
+    }
     res.json({
-      messgae: `Gallery Deleted`,
+      message: `Gallery Deleted`,
     });
   } catch (error) {
     console.log(error, "Internal error");

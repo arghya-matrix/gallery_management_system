@@ -18,7 +18,7 @@ async function signUp(req, res) {
 
     createObject.assigned_to = req.body.assigned_to
       ? req.body.assigned_to
-      : null;
+      : 1;
     createObject.approved_stat = req.body.approved_stat
       ? req.body.approved_stat
       : null;

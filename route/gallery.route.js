@@ -20,7 +20,6 @@ router.post(
   tokenVerify.userProfile,
   galleryMiddleware.checkUserType,
   uploadImage.uploadImage,
-  galleryMiddleware.galleryValidation,
   galleryController.createGallery
 );
 
@@ -42,9 +41,15 @@ router.put(
   [
     tokenVerify.userProfile,
     galleryMiddleware.checkUserType,
-    uploadImage.updateImage
+    uploadImage.updateImage,
   ],
   galleryController.updateGallery
+);
+
+router.delete(
+  "/delete-gallery",
+  [tokenVerify.userProfile, galleryMiddleware.checkUserType],
+  galleryController.deleteGallery
 );
 
 module.exports = router;

@@ -28,19 +28,27 @@ async function uploadImage(req, res, next) {
       console.log(err, "<------Error Handling the file");
       return res.status(400).json({ error: "File upload failed" });
     }
-    console.log(req.file.mimetype," file data");
+    console.log(req.file.mimetype, " file data");
     if (
       (req.file.mimetype == "image/png" ||
         req.file.mimetype == "image/jpg" ||
         req.file.mimetype == "image/jpeg") &&
       req.userdata.type == "Admin"
     ) {
-      const url = await s3services.putObject({
-        file: req.file,
-        name: req.body.image_name,
-      });
-      req.url = url;
-      next();
+      try {
+        const url = await s3services.putObject({
+          file: req.file,
+          name: req.body.image_name,
+        });
+        req.file.location = url;
+        next();
+      } catch (error) {
+        console.log(error, "Error uploading in s3");
+        res.status(500).json({
+          message: `Error uploading file`,
+          error: error,
+        });
+      }
     }
     if (!req.body.image_name) {
       res.status(403).json({
@@ -67,15 +75,12 @@ async function updateImage(req, res, next) {
   if (galleryData) {
     const url = new URL(galleryData.image_url);
     const pathName = url.pathname;
-    const directory = path.join(__dirname, "..", pathName);
-
-    if (fs.existsSync(directory)) {
-      fs.unlink(directory, (err) => {
-        if (err) {
-          console.error(err);
-        }
-      });
-    }
+    const inputString = pathName;
+    const stringWithoutFirstSlash = inputString.substring(1);
+    console.log(stringWithoutFirstSlash, "Filename");
+    // const data = await s3services.deleteObject({
+    //   fileName:stringWithoutFirstSlash
+    // })
   }
 
   upload(req, res, async function (err) {
@@ -84,7 +89,6 @@ async function updateImage(req, res, next) {
       return res.status(400).json({ error: "File upload failed" });
     }
     if (!req.file) {
-      fs.unlinkSync(req.file.path);
       next();
     }
     if (
@@ -92,19 +96,31 @@ async function updateImage(req, res, next) {
       req.file.mimetype != "image/jpg" ||
       req.file.mimetype != "image/jpeg"
     ) {
-      fs.unlinkSync(req.file.path);
       res.status(403).json({
         message: `Image extension should be in .png or .jpg or .jpeg`,
       });
       return;
     } else {
-      if (req.userdata.type == "Admin") {
-        req.url = `http://localhost:8080/uploads/${req.file.filename}`;
-        console.log(req.url, "<<==URL");
-        next();
-      } else if (req.userdata.type != "Admin") {
-        fs.unlinkSync(req.file.path);
-        return;
+      if (
+        (req.file.mimetype == "image/png" ||
+          req.file.mimetype == "image/jpg" ||
+          req.file.mimetype == "image/jpeg") &&
+        req.userdata.type == "Admin"
+      ) {
+        try {
+          const url = await s3services.putObject({
+            file: req.file,
+            name: req.body.image_name,
+          });
+          req.file.location = url;
+          next();
+        } catch (error) {
+          console.log(error, "Error uploading in s3");
+          res.status(500).json({
+            message: `Error uploading file`,
+            error: error,
+          });
+        }
       }
     }
   });

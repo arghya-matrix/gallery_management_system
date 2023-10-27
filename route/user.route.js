@@ -38,6 +38,7 @@ router.post(
   "/add-sub-admin",
   tokenVerify.userProfile,
   passwordHashing.hashPassword,
+  
   userController.addSubAdmin
 );
 router.put(
@@ -46,7 +47,7 @@ router.put(
   userController.changeApproveStatOfUser
 );
 
-router.put("/assign-sub-admin", tokenVerify.userProfile, userController.assignSubAdmin);
+router.put("/assign-sub-admin", tokenVerify.userProfile,userValidation.userSubAdminOrNot, userController.assignSubAdmin);
 router.get("/get-users", tokenVerify.userProfile, userController.getUsersAssignedToSubAdmin);
 
 module.exports = router;
