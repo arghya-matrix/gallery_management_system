@@ -1,4 +1,4 @@
-  const userServices = require("../services/user.services");
+const userServices = require("../services/user.services");
 const galleryServices = require("../services/gallery.services");
 const uploadImage = require("./uploadImage");
 
@@ -15,10 +15,20 @@ async function checkUserType(req, res, next) {
   if (req.userdata.type == "Admin" || req.userdata.type == "Sub-Admin") {
     next();
   } else {
-    res.status(403).json({
-      message: `Only admin or sub admin can access this`,
+    const whereOptions = {};
+    whereOptions.id = req.userdata.user_id;
+    whereOptions.approved_stat = true;
+    const user = await userServices.findUser({
+      whereOptions: whereOptions,
     });
-    return;
+    if (user.count > 0) {
+      next();
+    } else {
+      res.status(403).json({
+        message: `An approved user or admin or sub admin can access this`,
+      });
+      return;
+    }
   }
 }
 

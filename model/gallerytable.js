@@ -17,6 +17,12 @@ const gallery = sequelize.define("Gallery", {
     type: DataTypes.BOOLEAN,
     defaultValue: true,
   },
+  added_by:{
+    type:DataTypes.INTEGER
+  },
+  approved_stat:{
+    type: DataTypes.BOOLEAN,
+  }
 });
 
 module.exports = gallery;

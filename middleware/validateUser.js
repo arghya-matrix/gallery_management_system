@@ -1,6 +1,7 @@
 const { Op, where } = require("sequelize");
 const userServices = require("../services/user.services");
-const db = require('../model/index')
+const db = require("../model/index");
+
 const validateUser = async function (req, res, next) {
   const data = req.body;
   const regex = /^[A-Za-z]+(?: [A-Za-z]+)? [A-Za-z]+$/;
@@ -82,6 +83,7 @@ async function userApprovedOrNot(req, res, next) {
     res.json({
       message: `Sign up to log in`,
     });
+    return;
   }
 
   if (data.user_type == "Admin" || data.user_type == "Sub-Admin") {
@@ -103,44 +105,63 @@ async function userApprovedOrNot(req, res, next) {
 }
 
 async function userSubAdminOrNot(req, res, next) {
-  if (req.query.user_id) {
-    if (req.userdata.type == "Admin") {
+  if (!req.query.user_id) {
+    res.status(403).json({
+      message: `Enter user id to change the approval status`,
+    });
+    return;
+  }
+  if (req.userdata.type === "End-User" || req.userdata.type ==="Sub-Admin") {
+    res.status(403).json({
+      message: `End User or Sub-Admin cannot use this`,
+    });
+  }
+
+  if (req.userdata.type === "Admin") {
+    try {
+    console.log("inside Admin");
       const user = await db.User.findOne({
         where: {
           id: req.query.user_id,
         },
         raw: true,
       });
-      if (user.user_type == "Sub-Admin") {
+
+      if (user && user.user_type === "Sub-Admin") {
         res.status(409).json({
           message: `Sub-Admin cannot be assigned to Sub-Admin`,
         });
         return;
-      } else {
-        next();
       }
-      next();
-    } else {
-      const whereOptions = {};
-      whereOptions.id = req.query.user_id;
-      const user = await userServices.findUser({
-        whereOptions: whereOptions,
-      });
-      const userData = user.rows[0].toJSON();
 
-      if (userData.assigned_to == req.userdata.user_id) {
-        next();
-      } else {
-        return res.status(422).json({
-          message: `User is not assigned to you`,
-        });
-      }
+      // If the user exists and is not a Sub-Admin, continue to the next middleware
+      next();
+    } catch (error) {
+      // Handle any database query errors
+      res.status(500).json({
+        message: `Error while checking user type: ${error.message}`,
+      });
     }
-  } else {
-    return res.status(403).json({
-      message: `Enter user id to change the approval status`,
-    });
   }
+  // if (req.userdata.type === "Sub-Admin") {
+  //   console.log("inside subadmin");
+  //   const whereOptions = {};
+  //   whereOptions.id = req.query.user_id;
+  //   const user = await userServices.findUser({
+  //     whereOptions: whereOptions,
+  //   });
+  //   if (user.count > 0) {
+  //     const userData = user.rows[0].toJSON();
+  //     if (userData.assigned_to == req.userdata.user_id) {
+  //       // User is assigned to the current user, continue to the next middleware
+  //       next();
+  //     } else {
+  //       res.status(422).json({
+  //         message: `User is not assigned to you`,
+  //       });
+  //     }
+  //   }
+  // }
 }
 
 module.exports = {
@@ -149,5 +170,5 @@ module.exports = {
   checkExistingUser,
   validatePassword,
   userApprovedOrNot,
-  userSubAdminOrNot
+  userSubAdminOrNot,
 };

@@ -3,6 +3,7 @@ const sessionServices = require('../services/sessionsServices');
 
 async function userProfile(req, res, next) {
   const header = req.headers["authorization"];
+  
   if(!header){
     return res.json({
       message: `You are not logged in yet`
@@ -14,6 +15,7 @@ async function userProfile(req, res, next) {
   if (data) {
       verify(data, "createJwtToken", async (err, authData) => {
         if (err) {
+
           res.status(401).json({
             message: "Unauthorized",
           });

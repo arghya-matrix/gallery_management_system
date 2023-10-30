@@ -2,6 +2,7 @@ const { Op } = require("sequelize");
 const galleryServices = require("../services/gallery.services");
 const db = require("../model/index");
 const s3services = require("../services/s3.services");
+const userServices = require("../services/user.services");
 
 async function createGallery(req, res) {
   try {
@@ -9,9 +10,29 @@ async function createGallery(req, res) {
     createObject.image_name = req.body.image_name;
     createObject.image_url = req.file.location;
     createObject.image_type = req.file.mimetype;
+    createObject.added_by = req.userdata.user_id;
+    if (req.userdata.type == "Admin" || req.userdata.type == "Sub-Admin") {
+      createObject.approved_stat = true;
+    } else {
+      createObject.approved_stat = false;
+    }
     const gallery = await galleryServices.createGallery({
       createObject: createObject,
     });
+    if(createObject.approved_stat == true){
+      let createObjectForGallery;
+      const user_id = await userServices.findAllUser();
+
+      if (Array.isArray(user_id) == true) {
+        createObjectForGallery = user_id.map((id) => ({
+          image_id: gallery.id,
+          user_id: id,
+        }));
+        await galleryServices.assignGalleryToUser({
+          createObject: createObjectForGallery,
+        });
+      }
+    }
     res.json({
       message: `Image added to gallery`,
       data: gallery,
@@ -31,6 +52,7 @@ async function updateGallery(req, res) {
     const whereOptions = {};
     console.log("Inside controller");
     whereOptions.id = req.query.image_id;
+
     if (req.query.Name) {
       updateOptions.image_name = req.query.Name;
     }
@@ -42,7 +64,26 @@ async function updateGallery(req, res) {
         updateOptions.active == false;
       }
     }
-    if (req.file.location) {
+    if (req.query.approved_stat == 'true') {
+      updateOptions.approved_stat = true
+      const user_id = await userServices.findAllUser();
+      console.log(user_id,"User Id");
+
+      let createObject;
+      if (Array.isArray(user_id) == true) {
+        createObject = user_id.map((id) => ({
+          image_id: req.query.image_id,
+          user_id: id,
+        }));
+
+        await galleryServices.assignGalleryToUser({
+          createObject: createObject,
+        });
+      }
+    } if(req.query.approved_stat == 'false'){
+      updateOptions.approved_stat = false
+    }
+    if (req.file) {
       updateOptions.image_url = req.file.location;
     }
     const gallery = await galleryServices.updateGallery({
@@ -166,10 +207,10 @@ async function deleteGallery(req, res) {
           whereOptions: whereOptions,
         });
       } catch (error) {
-        console.log(error,"error deleting image");
+        console.log(error, "error deleting image");
         res.status(500).json({
-          message: error
-        })
+          message: error,
+        });
       }
     } else {
       res.status(404).json({

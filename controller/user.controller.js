@@ -1,10 +1,20 @@
 const userServices = require("../services/user.services");
 const sessionsServices = require("../services/sessionsServices");
+const galleryServices = require("../services/gallery.services");
 const hashingServices = require("../services/hashing.services");
 const generateNumber = require("../services/generateNumber");
 const jwtServices = require("../services/jwt.services");
 const mailer = require("../middleware/mailer");
-const { Op, where } = require("sequelize");
+const { Op } = require("sequelize");
+
+function removeIntegerFromArray(arr, integerToRemove) {
+  const indexToRemove = arr.indexOf(integerToRemove);
+
+  if (indexToRemove !== -1) {
+    arr.splice(indexToRemove, 1);
+  }
+  return arr;
+}
 
 async function signUp(req, res) {
   try {
@@ -16,9 +26,7 @@ async function signUp(req, res) {
       (createObject.email_address = req.body.email_address);
     // createObject.user_type = req.body.user_type ? req.body.user_type : null
 
-    createObject.assigned_to = req.body.assigned_to
-      ? req.body.assigned_to
-      : 1;
+    createObject.assigned_to = req.body.assigned_to ? req.body.assigned_to : 1;
     createObject.approved_stat = req.body.approved_stat
       ? req.body.approved_stat
       : null;
@@ -176,7 +184,7 @@ async function updateUser(req, res) {
   const data = req.query;
   const updateOptions = {};
   const whereOptions = {};
-  whereOptions.id = req.userdata.user_type;
+  whereOptions.id = req.userdata.user_id;
 
   if (data.Name) {
     updateOptions.Name = data.Name;
@@ -239,7 +247,7 @@ async function getUser(req, res) {
         totalPages: totalPages,
         user: users.rows,
       });
-    } else {
+    } if(req.userdata.type=="Admin") {
       const whereOptions = {};
       const page = req.query.page ? req.query.page : 1;
       const itemsInPage = req.query.size;
@@ -249,7 +257,7 @@ async function getUser(req, res) {
 
       if (req.query.Name) {
         whereOptions.Name = { [Op.substring]: req.query.Name };
-      }
+      }else
       if (req.query.approved_stat) {
         if (req.query.approved_stat == "Approved") {
           whereOptions.approved_stat == true;
@@ -258,7 +266,6 @@ async function getUser(req, res) {
           whereOptions.approved_stat == false;
         }
       }
-
       const users = await userServices.findUser({
         whereOptions: whereOptions,
         index: index,
@@ -273,6 +280,11 @@ async function getUser(req, res) {
         totalPages: totalPages,
         user: users.rows,
       });
+    }
+    else{
+      res.status(403).json({
+        message:`Only admmin and sub-admin can access this`
+      })
     }
   } catch (error) {
     res.status(500).json({
@@ -327,14 +339,17 @@ async function addSubAdmin(req, res) {
 async function changeApproveStatOfUser(req, res) {
   const updateOptions = {};
   const whereOptions = {};
+
   if (req.userdata.type == "Admin") {
     updateOptions.approved_stat = req.query.approved_stat;
     updateOptions.approved_by = req.userdata.user_id;
-    whereOptions.id = req.query.id;
+    whereOptions.id = req.query.user_id;
+
     const user = await userServices.updateUser({
       updateOptions: updateOptions,
       whereOptions: whereOptions,
     });
+
     const data = await userServices.findUser({
       whereOptions: whereOptions,
     });
@@ -347,25 +362,58 @@ async function changeApproveStatOfUser(req, res) {
           : req.query.approved_stat === "false"
           ? "Rejected"
           : "Not Approved Yet";
-      const mail = await mailer.sendMailToUser({
-        Admin: "Gallerywala",
-        body: userData,
-        stat: stat,
-      });
-      res.status(200).json({
-        message: `${user.data.Name} is updated`,
-        data: user.data,
-      });
-    }
-    if (user.statuscode == 500) {
-      res.status(500).json({
-        message: user.message,
-        error: user.error,
-      });
+      if (stat == "Accepted") {
+        let createObject;
+        const image_id = await galleryServices.findImageId();
+
+        if (Array.isArray(image_id) == true) {
+          const whereOptions = {};
+          whereOptions.user_id = req.query.user_id;
+          whereOptions.image_id = image_id;
+          const gallery = await galleryServices.findGallery({
+            whereOptions: whereOptions,
+          });
+          let arr;
+          if (gallery.count > 0) {
+            gallery.rows.map((obj) => {
+              arr = removeIntegerFromArray(image_id, obj.image_id);
+            });
+            if (arr.length > 0) {
+              createObject = arr.map((id) => ({
+                image_id: id,
+                user_id: req.query.user_id,
+              }));
+              galleryServices.assignGalleryToUser({
+                createObject: createObject,
+              });
+            } else {
+              res.status(409).json({
+                message: "Users already assigned to gallery",
+              });
+              return;
+            }
+          }
+        }
+        const mail = await mailer.sendMailToUser({
+          Admin: "Gallerywala",
+          body: userData,
+          stat: stat,
+        });
+        res.status(200).json({
+          message: `${user.data.Name} is updated`,
+          data: user.data,
+        });
+      }
+      if (user.statuscode == 500) {
+        res.status(500).json({
+          message: user.message,
+          error: user.error,
+        });
+      }
     }
   }
   if (req.userdata.type == "Sub-Admin") {
-    whereOptions.id = req.query.id;
+    whereOptions.id = req.query.user_id;
     whereOptions.assigned_to = req.userdata.user_id;
     const user = await userServices.findUser({
       whereOptions: whereOptions,
@@ -395,6 +443,38 @@ async function changeApproveStatOfUser(req, res) {
             ? "Rejected"
             : "Not Approved Yet";
 
+        if (stat == "Accepted") {
+          const image_id = await galleryServices.findImageId();
+          let createObject;
+          if (Array.isArray(image_id) == true) {
+            const whereOptions = {};
+            whereOptions.user_id = req.query.user_id;
+            whereOptions.image_id = image_id;
+            const gallery = await galleryServices.findGallery({
+              whereOptions: whereOptions,
+            });
+            let arr;
+            if (gallery.count > 0) {
+              gallery.rows.map((obj) => {
+                arr = removeIntegerFromArray(image_id, obj.image_id);
+              });
+              if (arr.length > 0) {
+                createObject = arr.map((id) => ({
+                  image_id: id,
+                  user_id: req.query.user_id,
+                }));
+                galleryServices.assignGalleryToUser({
+                  createObject: createObject,
+                });
+              } else {
+                res.status(409).json({
+                  message: "Users already assigned to gallery",
+                });
+                return;
+              }
+            }
+          }
+        }
         const mail = await mailer.sendMailToUser({
           Admin: "Gallerywala",
           body: userData,
@@ -420,14 +500,16 @@ async function assignSubAdmin(req, res) {
     const updateOptions = {};
     const whereOptions = {};
     if (!req.query.sub_admin) {
-      return res.json({
+      res.json({
         message: `Enter sub admin id to proceed`,
       });
+      return;
     }
     if (!req.query.user_id) {
-      return res.json({
+      res.json({
         message: `Enter user id to proceed`,
       });
+      return;
     }
     if (req.userdata.type == "Admin") {
       updateOptions.assigned_to = req.query.sub_admin;
@@ -436,6 +518,7 @@ async function assignSubAdmin(req, res) {
         updateOptions: updateOptions,
         whereOptions: whereOptions,
       });
+
       whereOptions.id = req.query.sub_admin;
       const subAdmin = await userServices.findUser({
         whereOptions: whereOptions,
@@ -445,7 +528,7 @@ async function assignSubAdmin(req, res) {
         subAdmin: subAdmin.rows[0],
         user: user.data,
       });
-      res.json({
+      res.status(200).json({
         message: `${user.data.Name} is assigned to ${subAdmin.rows[0].Name}`,
         mailUrl: messageUrl,
       });
@@ -454,17 +537,6 @@ async function assignSubAdmin(req, res) {
     console.log(error, "<<<---- An internal error occured");
     res.status(500).json({
       message: `internal error`,
-      error: error,
-    });
-  }
-}
-
-async function getUsersAssignedToSubAdmin(req, res) {
-  try {
-  } catch (error) {
-    console.log(error, "<--- Internal Error");
-    res.status(500).json({
-      message: `Server error`,
       error: error,
     });
   }
@@ -506,6 +578,5 @@ module.exports = {
   addSubAdmin,
   changeApproveStatOfUser,
   assignSubAdmin,
-  getUsersAssignedToSubAdmin,
   logOut,
 };

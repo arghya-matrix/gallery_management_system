@@ -1,3 +1,4 @@
+const { Op } = require("sequelize");
 const db = require("../model/index");
 
 async function createGallery({ createObject }) {
@@ -23,10 +24,10 @@ async function getGalleryForAdmin({ whereOptions, index, size, orderOptions }) {
     include: [
       {
         model: db.AssignedGallery,
-        attributes: ["id"],
+        attributes: ['id'],
         include: {
           model: db.User,
-          attributes: ["Name"],
+          attributes: ['id',"Name"],
         },
       },
     ],
@@ -44,11 +45,17 @@ async function deleteGallery({ whereOptions }) {
   });
 }
 
-async function getGalleryForUser({ whereOptions, id, size, index, orderOptions }) {
+async function getGalleryForUser({
+  whereOptions,
+  id,
+  size,
+  index,
+  orderOptions,
+}) {
   const gallery = await db.Gallery.findAndCountAll({
     include: {
       model: db.AssignedGallery,
-      attributes:[],
+      attributes: [],
       where: {
         user_id: id,
       },
@@ -76,6 +83,18 @@ async function findGallery({ whereOptions }) {
   return gallery;
 }
 
+async function findImageId() {
+  const images = await db.Gallery.findAll({
+    attributes: ["id"],
+    where: {
+      approved_stat: { [Op.or]: [null, true] },
+    },
+    raw: true,
+  });
+  const idArray = images.map((image) => parseInt(image.id));
+  return idArray;
+}
+
 module.exports = {
   createGallery,
   updateGallery,
@@ -84,4 +103,5 @@ module.exports = {
   getGalleryForUser,
   assignGalleryToUser,
   findGallery,
+  findImageId,
 };

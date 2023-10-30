@@ -48,6 +48,6 @@ router.put(
 );
 
 router.put("/assign-sub-admin", tokenVerify.userProfile,userValidation.userSubAdminOrNot, userController.assignSubAdmin);
-router.get("/get-users", tokenVerify.userProfile, userController.getUsersAssignedToSubAdmin);
+
 
 module.exports = router;

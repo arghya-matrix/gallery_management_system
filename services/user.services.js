@@ -1,3 +1,4 @@
+const { Op } = require("sequelize");
 const db = require("../model/index");
 
 async function findUser({ whereOptions, index, size, attributes }) {
@@ -65,11 +66,26 @@ async function updateUser({ whereOptions, updateOptions }) {
 
 async function findOneUser({ whereOptions }) {
   const user = await db.User.findAll({
-    attributes : ['id'],
+    attributes: ["id"],
     where: whereOptions,
     raw: true,
   });
-  const idArray = user.map(user => parseInt(user.id));
+  const idArray = user.map((user) => parseInt(user.id));
+  return idArray;
+}
+
+async function findAllUser() {
+  const users = await db.User.findAll({
+    attributes: ["id"],
+    where: {
+      [Op.and]: {
+        approved_stat: true,
+        user_type: "End-User",
+      },
+    },
+    raw: true,
+  });
+  const idArray = users.map((user) => parseInt(user.id));
   return idArray;
 }
 
@@ -79,4 +95,5 @@ module.exports = {
   deleteUser,
   updateUser,
   findOneUser,
+  findAllUser,
 };
