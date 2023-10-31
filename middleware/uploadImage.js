@@ -59,9 +59,6 @@ async function uploadImage(req, res, next) {
 }
 
 async function updateImage(req, res, next) {
-  if (!req.file || req.file == undefined) {
-    next();
-  } else {
     const galleryData = await db.Gallery.findOne({
       where: {
         id: req.query.image_id,
@@ -85,11 +82,15 @@ async function updateImage(req, res, next) {
         console.log(err, "<------Error Handling the file");
         return res.status(400).json({ error: "File upload failed" });
       }
-      console.log(req.file, "file data");
+      if (!req.file || req.file == undefined) {
+        console.log("Inside update image", req.file);
+        next();
+      }
+      console.log(req.file.mimetype, "file data");
       if (
-        req.file.mimetype != "image/png" ||
-        req.file.mimetype != "image/jpg" ||
-        req.file.mimetype != "image/jpeg"
+        req.file.mimetype !== "image/png" &&
+        req.file.mimetype !== "image/jpg" &&
+        req.file.mimetype !== "image/jpeg"
       ) {
         res.status(403).json({
           message: `Image extension should be in .png or .jpg or .jpeg`,
@@ -99,13 +100,13 @@ async function updateImage(req, res, next) {
         if (
           (req.file.mimetype == "image/png" ||
             req.file.mimetype == "image/jpg" ||
-            req.file.mimetype == "image/jpeg") &&
-          req.userdata.type == "Admin"
+            req.file.mimetype === "image/jpeg") &&
+          req.userdata.type === "Admin"
         ) {
           try {
             const url = await s3services.putObject({
               file: req.file,
-              name: req.body.image_name,
+              name: galleryData.image_name,
             });
             req.file.location = url;
             next();
@@ -119,7 +120,7 @@ async function updateImage(req, res, next) {
         }
       }
     });
-  }
+  
 }
 
 module.exports = {

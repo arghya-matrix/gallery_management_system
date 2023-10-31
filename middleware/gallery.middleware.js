@@ -63,8 +63,23 @@ async function checkStatOfUser(req, res, next) {
     Array.isArray(req.body.image_id) == false &&
     Array.isArray(req.body.user_id) == false
   ) {
-    req.user_id = req.body.user_id;
-    next();
+    const whereOptions = {};
+    whereOptions.id = req.body.user_id;
+    whereOptions.user_type = "End-User";
+    whereOptions.approved_stat = true;
+
+    const user = await userServices.findOneUser({
+      whereOptions: whereOptions,
+    });
+    console.log(user, "Users can be added");
+    if (user.length > 0) {
+      req.user_id = req.body.user_id;
+      next();
+    } else {
+      res.status(403).json({
+        message: `User is neither an end-user nor an approved one`,
+      });
+    }
   }
 
   if (
@@ -73,6 +88,7 @@ async function checkStatOfUser(req, res, next) {
   ) {
     const whereOptions = {};
     whereOptions.id = req.body.user_id;
+    whereOptions.user_type = "End-User";
     whereOptions.approved_stat = true;
     const user_id = await userServices.findOneUser({
       whereOptions: whereOptions,
@@ -90,8 +106,23 @@ async function checkStatOfUser(req, res, next) {
     Array.isArray(req.body.image_id) == true &&
     Array.isArray(req.body.user_id) == false
   ) {
-    req.user_id = req.body.user_id;
-    next();
+    const whereOptions = {};
+    whereOptions.id = req.body.user_id;
+    whereOptions.user_type = "End-User";
+    whereOptions.approved_stat = true;
+
+    const user = await userServices.findOneUser({
+      whereOptions: whereOptions,
+    });
+    console.log(user, "Users can be added");
+    if (user.length > 0) {
+      req.user_id = req.body.user_id;
+      next();
+    } else {
+      res.status(403).json({
+        message: `User is neither an end-user nor an approved one`,
+      });
+    }
   }
 }
 

@@ -49,5 +49,6 @@ router.put(
 
 router.put("/assign-sub-admin", tokenVerify.userProfile,userValidation.userSubAdminOrNot, userController.assignSubAdmin);
 
+router.delete("/delete-user", tokenVerify.userProfile, userController)
 
 module.exports = router;

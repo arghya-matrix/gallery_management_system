@@ -247,7 +247,8 @@ async function getUser(req, res) {
         totalPages: totalPages,
         user: users.rows,
       });
-    } if(req.userdata.type=="Admin") {
+    }
+    if (req.userdata.type == "Admin") {
       const whereOptions = {};
       const page = req.query.page ? req.query.page : 1;
       const itemsInPage = req.query.size;
@@ -257,8 +258,7 @@ async function getUser(req, res) {
 
       if (req.query.Name) {
         whereOptions.Name = { [Op.substring]: req.query.Name };
-      }else
-      if (req.query.approved_stat) {
+      } else if (req.query.approved_stat) {
         if (req.query.approved_stat == "Approved") {
           whereOptions.approved_stat == true;
         }
@@ -280,11 +280,10 @@ async function getUser(req, res) {
         totalPages: totalPages,
         user: users.rows,
       });
-    }
-    else{
+    } else {
       res.status(403).json({
-        message:`Only admmin and sub-admin can access this`
-      })
+        message: `Only admmin and sub-admin can access this`,
+      });
     }
   } catch (error) {
     res.status(500).json({
@@ -570,6 +569,56 @@ async function logOut(req, res) {
     });
   }
 }
+
+async function deleteUser(req, res) {
+  const whereOptions = {};
+  if(!req.query.user_id){
+   res.status(400).json({
+    message:`User id needed to delete an user`
+   }) 
+  }
+
+  if (req.userdata.type == "Admin") {
+    whereOptions.id = req.query.user_id;
+    const data = await userServices.deleteUser({
+      whereOptions: whereOptions,
+    });
+    if (data.error == false) {
+      res.status(200).json({
+        message: data.message,
+      });
+    } else {
+      res.status(data.statuscode).json({
+        message: data.message,
+      });
+    }
+  }
+  if (req.userdata.type == "Sub-Admin") {
+    whereOptions.assigned_to = req.userdata.user_id;
+    whereOptions.id = req.query.user_id;
+    const user = await userServices.findOneUser({
+      whereOptions: whereOptions,
+    });
+    if (user.length > 0) {
+      const data = await userServices.deleteUser({
+        whereOptions: whereOptions,
+      });
+      if (data.error == false) {
+        res.status(200).json({
+          message: data.message,
+        });
+      } else {
+        res.status(data.statuscode).json({
+          message: data.message,
+        });
+      }
+    } else {
+      res.status(404).json({
+        message: `User is not assigned to you`
+      })
+    }
+  }
+}
 module.exports = {
   signUp,
   signIn,
@@ -579,4 +628,5 @@ module.exports = {
   changeApproveStatOfUser,
   assignSubAdmin,
   logOut,
+  deleteUser
 };

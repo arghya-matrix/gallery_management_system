@@ -24,10 +24,10 @@ async function getGalleryForAdmin({ whereOptions, index, size, orderOptions }) {
     include: [
       {
         model: db.AssignedGallery,
-        attributes: ['id'],
+        attributes: ["id"],
         include: {
           model: db.User,
-          attributes: ['id',"Name"],
+          attributes: ["id", "Name"],
         },
       },
     ],
@@ -95,6 +95,14 @@ async function findImageId() {
   return idArray;
 }
 
+async function getGallery({ whereOptions }) {
+  const gallery = await db.Gallery.findAndCountAll({
+    where: whereOptions,
+    raw: true,
+  });
+  return gallery;
+}
+
 module.exports = {
   createGallery,
   updateGallery,
@@ -104,4 +112,5 @@ module.exports = {
   assignGalleryToUser,
   findGallery,
   findImageId,
+  getGallery
 };

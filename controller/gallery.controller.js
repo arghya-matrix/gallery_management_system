@@ -50,7 +50,7 @@ async function updateGallery(req, res) {
   try {
     const updateOptions = {};
     const whereOptions = {};
-    console.log("Inside controller");
+    
     whereOptions.id = req.query.image_id;
 
     if (req.query.Name) {
